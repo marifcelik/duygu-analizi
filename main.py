@@ -5,7 +5,6 @@ import argparse
 import numpy as np
 import joblib
 import time
-import sys
 
 from src.data_processor import DataProcessor
 from src.feature_extraction import FeatureExtractor
@@ -24,14 +23,12 @@ class TrainingProgress:
         self.start_time = time.time()
     
     def update(self, step_name, add_step=True):
-        """Update progress and display status"""
         if add_step:
             self.current_step += 1
         
         elapsed = time.time() - self.start_time
         progress = (self.current_step / self.total_steps) * 100
         
-        # Simple progress bar
         bar_length = 30
         filled = int(bar_length * self.current_step / self.total_steps)
         bar = '█' * filled + '░' * (bar_length - filled)
@@ -39,16 +36,16 @@ class TrainingProgress:
         print(f"\r[{bar}] {progress:.1f}% | Step {self.current_step}/{self.total_steps}: {step_name} | {elapsed:.1f}s", end='', flush=True)
         
         if self.current_step == self.total_steps:
-            print()  # New line when complete
+            print()
     
     def complete_step(self, step_name):
         """Mark a step as complete"""
         self.update(step_name, add_step=True)
-        print()  # New line after each major step
+        print()
 
 
 def train_models(data_path: str = "data", save_models: bool = True):
-    print("🚀 Starting Turkish Emotion Analysis Training...")
+    print("Starting Emotion Analysis Training...")
     
     # Initialize progress tracker (7 main steps)
     progress = TrainingProgress(7)
@@ -89,7 +86,6 @@ def train_models(data_path: str = "data", save_models: bool = True):
     print(f"Feature dimensions: {X_train.shape[1]}")
     print(f"Number of classes: {len(np.unique(y_train))}")
     
-    # Step 4: Train models
     progress.complete_step("Training models")
     models = []
     
@@ -116,7 +112,6 @@ def train_models(data_path: str = "data", save_models: bool = True):
     except Exception as e:
         print(f"  Neural Network training failed: {e}")
     
-    # Step 5: Evaluate models
     progress.complete_step("Evaluating models")
     label_names = feature_extractor.label_encoder.classes_
     

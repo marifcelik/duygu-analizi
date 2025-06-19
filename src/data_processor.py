@@ -1,6 +1,6 @@
 import pandas as pd
 import re
-from typing import Tuple, List
+from typing import Tuple
 import os
 
 
