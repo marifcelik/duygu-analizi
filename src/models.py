@@ -101,14 +101,13 @@ class SimpleNeuralNetwork(EmotionClassifier):
     """Simple neural network using PyTorch for emotion classification"""
     
     def __init__(self, input_dim: int, hidden_dim: int = 128, output_dim: int = 6, 
-                 learning_rate: float = 0.001, epochs: int = 100):
+                 learning_rate: float = 0.001, epochs: int = 100, use_gpu: bool = True):
         super().__init__("Simple Neural Network")
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
         self.learning_rate = learning_rate
         self.epochs = epochs
-        self.device = 'cpu'  # No GPU available as per user requirements
         
         # Import torch here to avoid dependency issues if not needed
         try:
@@ -118,6 +117,19 @@ class SimpleNeuralNetwork(EmotionClassifier):
             self.torch = torch
             self.nn = nn
             self.optim = optim
+            
+            # GPU detection and setup
+            if use_gpu and torch.cuda.is_available():
+                self.device = torch.device('cuda')
+                print(f"🚀 GPU detected: {torch.cuda.get_device_name(0)}")
+                print(f"📊 GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+            else:
+                self.device = torch.device('cpu')
+                if use_gpu:
+                    print("⚠️ GPU requested but not available. Using CPU.")
+                else:
+                    print("💻 Using CPU for training.")
+            
             self._build_model()
         except ImportError:
             print("PyTorch not available. Falling back to simpler models.")
@@ -142,7 +154,7 @@ class SimpleNeuralNetwork(EmotionClassifier):
                 x = self.fc3(x)
                 return x
         
-        self.model = SimpleNN(self.input_dim, self.hidden_dim, self.output_dim)
+        self.model = SimpleNN(self.input_dim, self.hidden_dim, self.output_dim).to(self.device)
         self.criterion = self.nn.CrossEntropyLoss()
         self.optimizer = self.optim.Adam(self.model.parameters(), lr=self.learning_rate)
     
@@ -151,11 +163,13 @@ class SimpleNeuralNetwork(EmotionClassifier):
         if self.model is None:
             raise ValueError("PyTorch not available")
         
-        # Convert to tensors
-        X_tensor = self.torch.FloatTensor(X_train)
-        y_tensor = self.torch.LongTensor(y_train)
+        # Convert to tensors and move to device
+        X_tensor = self.torch.FloatTensor(X_train).to(self.device)
+        y_tensor = self.torch.LongTensor(y_train).to(self.device)
         
         self.model.train()
+        print(f"Training on device: {self.device}")
+        
         for epoch in range(self.epochs):
             self.optimizer.zero_grad()
             outputs = self.model(X_tensor)
@@ -178,11 +192,11 @@ class SimpleNeuralNetwork(EmotionClassifier):
         
         self.model.eval()
         with self.torch.no_grad():
-            X_tensor = self.torch.FloatTensor(X)
+            X_tensor = self.torch.FloatTensor(X).to(self.device)
             outputs = self.model(X_tensor)
             _, predicted = self.torch.max(outputs.data, 1)
         
-        return predicted.numpy()
+        return predicted.cpu().numpy()
     
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """Get prediction probabilities"""
@@ -194,11 +208,11 @@ class SimpleNeuralNetwork(EmotionClassifier):
         
         self.model.eval()
         with self.torch.no_grad():
-            X_tensor = self.torch.FloatTensor(X)
+            X_tensor = self.torch.FloatTensor(X).to(self.device)
             outputs = self.model(X_tensor)
             probabilities = self.torch.softmax(outputs, dim=1)
         
-        return probabilities.numpy()
+        return probabilities.cpu().numpy()
 
 
 class ModelEvaluator:
@@ -289,4 +303,4 @@ class ModelEvaluator:
                 'top_emotions': top_emotions
             })
         
-        return results 
+        return results
